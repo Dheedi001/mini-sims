@@ -1,0 +1,14 @@
+{
+  "students": [
+    { "id": 1, "name": "Daniel O.", "grade": "Year 2", "attendanceRate": 85, "feesBalance": 50000, "status": "Active" },
+    { "id": 2, "name": "Sarah J.", "grade": "Year 1", "attendanceRate": 98, "feesBalance": 0, "status": "Active" },
+    { "id": 3, "name": "Michael B.", "grade": "Year 3", "attendanceRate": 60, "feesBalance": 120000, "status": "At Risk" }
+  ],
+  "attendance": [
+    { "id": 1, "date": "2026-07-23", "present": 145, "absent": 12 }
+  ],
+  "invoices": [
+    { "id": 101, "studentId": 1, "amount": 50000, "dueDate": "2026-08-01", "status": "Pending" },
+    { "id": 102, "studentId": 2, "amount": 75000, "dueDate": "2026-07-15", "status": "Paid" }
+  ]
+}
