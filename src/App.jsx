@@ -15,6 +15,8 @@ import Analytics from './Analytics';
 import StudentFees from './StudentFees';
 import LecturerRegistry from './LecturerRegistry';
 import Settings from './Settings';
+import LecturerGrades from './LecturerGrades';
+import StudentTranscript from './StudentTranscript';
 
 // RBAC SECURITY INTERCEPTOR
 const RoleProtectedRoute = ({ children, allowedRoles }) => {
@@ -56,6 +58,10 @@ export default function App() {
           <Route path="/admin/students" element={<StudentDirectory />} />
           <Route path="/admin/analytics" element={<Analytics />} />
           <Route path="/admin/settings" element={<Settings />} />
+          {/* In the LECTURER WORKSPACE */}
+          <Route path="/lecturer/grades" element={<LecturerGrades />} />
+          {/* In the STUDENT WORKSPACE */}    
+          <Route path="/student/transcript" element={<StudentTranscript />} />
         </Route>
 
         {/* ==========================================

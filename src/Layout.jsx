@@ -5,7 +5,8 @@ import { logout } from './authSlice';
 import { 
   LayoutDashboard, Users, Receipt, Calendar, 
   Settings, LogOut, Bell, Search, Command, ChevronRight,
-  TrendingUp, UserCheck, UserPlus, CreditCard, Scan, Menu, X
+  TrendingUp, UserCheck, UserPlus, CreditCard, Scan, Menu, X,
+  Award, FileEdit // <-- Correctly imported here!
 } from 'lucide-react';
 
 export default function Layout() {
@@ -34,12 +35,14 @@ export default function Layout() {
       return [
         { path: '/lecturer/dashboard', icon: Scan, label: 'Live QR Session' },
         { path: '/lecturer/registry', icon: UserCheck, label: 'Manual Registry' },
+        { path: '/lecturer/grades', icon: FileEdit, label: 'Grade Entry' }, // <-- New Route Added
       ];
     } else {
       return [
         { path: '/student/dashboard', icon: LayoutDashboard, label: 'My Dashboard' },
         { path: '/student/fees', icon: CreditCard, label: 'Tuition & Fees' },
         { path: '/student/timetable', icon: Calendar, label: 'My Classes' },
+        { path: '/student/transcript', icon: Award, label: 'Transcript' }, // <-- New Route Added
       ];
     }
   };
@@ -51,7 +54,7 @@ export default function Layout() {
 
   const handleNavigation = (path) => {
     navigate(path);
-    setMobileMenuOpen(false); // Close mobile sidebar on click
+    setMobileMenuOpen(false); 
   };
 
   return (
@@ -117,7 +120,6 @@ export default function Layout() {
         <header className="h-[76px] w-full glass-panel sticky top-0 z-30 flex items-center justify-between px-4 sm:px-8 bg-white/80 backdrop-blur-md border-b border-slate-200">
           <div className="flex items-center gap-3 flex-1 xl:w-96">
             
-            {/* Hamburger Mobile Menu */}
             <button onClick={() => setMobileMenuOpen(true)} className="xl:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg">
               <Menu size={24} />
             </button>

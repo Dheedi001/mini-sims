@@ -1,38 +1,57 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+import { supabase } from './supabaseClient';
 
-export const fetchStudents = createAsyncThunk('students/fetchStudents', async () => {
-  try {
-    const response = await axios.get('http://localhost:5000/students');
-    return response.data;
-  } catch (error) {
-    console.warn("Backend unavailable. Injecting Vercel deployment fallback data.");
-    // FALLBACK DATA FOR VERCEL
-    return [
-      { id: 1, name: "Daniel O.", grade: "Year 2", attendanceRate: 85, feesBalance: 50000, status: "Active" },
-      { id: 2, name: "Sarah J.", grade: "Year 1", attendanceRate: 98, feesBalance: 0, status: "Active" },
-      { id: 3, name: "Michael B.", grade: "Year 3", attendanceRate: 60, feesBalance: 120000, status: "At Risk" },
-      { id: 4, name: "David E.", grade: "Year 2", attendanceRate: 72, feesBalance: 85000, status: "At Risk" }
-    ];
+// REAL SUPABASE CRUD: Fetch all students from the database
+export const fetchStudents = createAsyncThunk(
+  'students/fetchStudents',
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .order('name', { ascending: true }); // Alphabetical order
+
+      if (error) throw error;
+      
+      // Map the snake_case DB columns to our frontend camelCase expectations
+      return data.map(student => ({
+        id: student.id,
+        name: student.name,
+        regNo: student.reg_no,
+        grade: student.grade,
+        attendanceRate: student.attendance_rate,
+        feesStatus: student.fees_status
+      }));
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
   }
-});
+);
 
 const studentSlice = createSlice({
   name: 'students',
-  initialState: { data: [], status: 'idle', error: null },
-  reducers: {},
+  initialState: {
+    data: [],
+    status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
+    error: null,
+  },
+  reducers: {
+    // We can add local reducers here later if needed
+  },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchStudents.pending, (state) => { state.status = 'loading'; })
+      .addCase(fetchStudents.pending, (state) => {
+        state.status = 'loading';
+      })
       .addCase(fetchStudents.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.data = action.payload;
+        state.data = action.payload; // Injects the live database array!
       })
       .addCase(fetchStudents.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = action.error.message;
+        state.error = action.payload;
       });
-  }
+  },
 });
 
 export default studentSlice.reducer;
