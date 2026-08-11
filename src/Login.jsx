@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { login } from './authSlice';
+import { loginUser } from './authSlice';
 import { Lock, User, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function Login() {
@@ -13,21 +13,27 @@ export default function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError(false);
-    
-    // Simulate a premium network delay for the loading animation
-    setTimeout(() => {
-      if (username === 'admin' && password === 'admin123') {
-        dispatch(login({ username: 'Administrator' }));
-        navigate('/dashboard');
-      } else {
-        setError(true);
-        setIsLoading(false);
+
+    try {
+      // Passes the EXACT username/email typed by the user
+      const resultAction = await dispatch(loginUser({ email: username, password })).unwrap();
+      
+      // Dynamic RBAC Routing based on Supabase profile role
+      if (resultAction.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (resultAction.role === 'lecturer') {
+        navigate('/lecturer/dashboard');
+      } else if (resultAction.role === 'student') {
+        navigate('/student/dashboard'); 
       }
-    }, 800);
+    } catch (err) {
+      setError(true);
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -112,7 +118,7 @@ export default function Login() {
         </form>
         
         <div className="mt-8 text-center text-xs font-medium text-slate-500">
-          Authorized personnel only. <br/> Hint: <span className="text-slate-400">admin / admin123</span>
+          Authorized personnel only. <br/> Hint: <span className="text-slate-400">ADMIN- admin / admin123 <br/> LECTURER- lecturer / lecturer123 <br/> STUDENT- 202600142@sims.edu.ng / sims2026</span>
         </div>
       </div>
     </div>

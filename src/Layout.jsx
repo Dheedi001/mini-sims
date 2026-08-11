@@ -4,26 +4,56 @@ import { useSelector, useDispatch } from 'react-redux';
 import { logout } from './authSlice';
 import { 
   LayoutDashboard, Users, Receipt, Calendar, 
-  Settings, LogOut, Bell, Search, Command, ChevronRight 
+  Settings, LogOut, Bell, Search, Command, ChevronRight,
+  TrendingUp, UserCheck, UserPlus, CreditCard, Scan
 } from 'lucide-react';
 
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  
+  // Get the logged-in user from Redux
   const { user } = useSelector((state) => state.auth);
-
-  const navItems = [
-    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/attendance', icon: Users, label: 'Attendance' },
-    { path: '/fees', icon: Receipt, label: 'Fees & Finance' },
-    { path: '/timetable', icon: Calendar, label: 'Timetable' },
-  ];
 
   const handleLogout = () => {
     dispatch(logout());
     navigate('/');
   };
+
+  // 1. DYNAMIC SIDEBAR ITEMS BASED ON ROLE
+  const getNavItems = () => {
+    if (user?.role === 'admin') {
+      return [
+        { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { path: '/admin/students', icon: Users, label: 'Student Directory' },
+        { path: '/admin/provision', icon: UserPlus, label: 'Provision Account' },
+        { path: '/admin/fees', icon: Receipt, label: 'Fees & Finance' },
+        { path: '/admin/analytics', icon: TrendingUp, label: 'AI Analytics' },
+        { path: '/admin/timetable', icon: Calendar, label: 'Timetable' },
+      ];
+    } else if (user?.role === 'lecturer') {
+      return [
+        { path: '/lecturer/dashboard', icon: Scan, label: 'Live QR Session' },
+        { path: '/lecturer/registry', icon: UserCheck, label: 'Manual Registry' },
+      ];
+    } else {
+      // Default to Student Role
+      return [
+        { path: '/student/dashboard', icon: LayoutDashboard, label: 'My Dashboard' },
+        { path: '/student/fees', icon: CreditCard, label: 'Tuition & Fees' },
+        { path: '/student/timetable', icon: Calendar, label: 'My Classes' },
+      ];
+    }
+  };
+
+  const navItems = getNavItems();
+  
+  // 2. DYNAMIC PROFILE DISPLAY LOGIC
+  const userInitials = user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'A';
+  const displayRole = user?.role ? user.role.toUpperCase() : 'ENTERPRISE';
+  const displayName = user?.full_name || 'System Admin';
+  const displaySubtext = user?.regNo || user?.role || 'Administrator';
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] overflow-hidden font-sans selection:bg-blue-500/30">
@@ -39,12 +69,12 @@ export default function Layout() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-white tracking-tight leading-none">Mini-SIMS</h1>
-            <p className="text-[10px] uppercase tracking-widest mt-1.5 text-blue-400 font-bold">Enterprise</p>
+            <p className="text-[10px] uppercase tracking-widest mt-1.5 text-blue-400 font-bold">{displayRole}</p>
           </div>
         </div>
         
         <nav className="flex-1 px-4 py-2 space-y-1.5 relative z-10 overflow-y-auto custom-scrollbar">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-4 mb-4 mt-2">Main Menu</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-4 mb-4 mt-2">Workspace</p>
           
           {navItems.map((item) => {
             const isActive = location.pathname.includes(item.path);
@@ -74,7 +104,11 @@ export default function Layout() {
         </nav>
 
         <div className="p-4 border-t border-slate-800/50 relative z-10">
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 rounded-xl font-medium transition-colors">
+          {/* DYNAMIC SETTINGS ROUTING ADDED HERE */}
+          <button 
+            onClick={() => navigate(`/${user?.role || 'admin'}/settings`)}
+            className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 rounded-xl font-medium transition-colors"
+          >
             <Settings size={18} /> Settings
           </button>
           <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-red-500/10 hover:text-red-400 rounded-xl font-medium transition-colors mt-1">
@@ -87,33 +121,44 @@ export default function Layout() {
       <div className="flex-1 flex flex-col min-w-0 relative">
         
         {/* GLASSMORPHIC HEADER */}
-        <header className="h-[76px] glass-panel sticky top-0 z-30 flex items-center justify-between px-8">
+        <header className="h-[76px] glass-panel sticky top-0 z-30 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md border-b border-slate-200">
           <div className="flex items-center gap-4 w-96">
-            <div className="flex items-center gap-3 px-4 py-2 bg-slate-100/50 hover:bg-slate-100 border border-slate-200/60 rounded-xl focus-within:border-blue-500/40 focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(59,130,246,0.1)] transition-all w-full cursor-text group">
-              <Search size={16} className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-              <input 
-                type="text" 
-                placeholder="Search students, invoices..." 
-                className="bg-transparent outline-none text-sm w-full font-medium text-slate-700 placeholder:text-slate-400" 
-              />
-              <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 px-1.5 py-0.5 rounded-md bg-slate-200/50 border border-slate-200">
-                <Command size={10} /> K
+            
+            {/* 3. DYNAMIC SEARCH BAR (Hidden for Students) */}
+            {user?.role !== 'student' && (
+              <div className="flex items-center gap-3 px-4 py-2 bg-slate-100/50 hover:bg-slate-100 border border-slate-200/60 rounded-xl focus-within:border-blue-500/40 focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(59,130,246,0.1)] transition-all w-full cursor-text group">
+                <Search size={16} className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                <input 
+                  type="text" 
+                  placeholder="Search students, invoices..." 
+                  className="bg-transparent outline-none text-sm w-full font-medium text-slate-700 placeholder:text-slate-400" 
+                />
+                <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 px-1.5 py-0.5 rounded-md bg-slate-200/50 border border-slate-200">
+                  <Command size={10} /> K
+                </div>
               </div>
-            </div>
+            )}
+
           </div>
           
           <div className="flex items-center gap-6">
             <button className="relative text-slate-400 hover:text-slate-700 transition-colors p-2 rounded-full hover:bg-slate-100">
               <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-coral-500 rounded-full border-2 border-white"></span>
+              {/* Notification dot conditionally shows based on role */}
+              {user?.role === 'student' ? (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              ) : (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-coral-500 rounded-full border-2 border-white"></span>
+              )}
             </button>
             <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
+               {/* 4. DYNAMIC USER PROFILE */}
                <div className="text-right hidden md:block">
-                  <p className="text-sm font-bold text-slate-700 leading-none mb-1">Destiny E.</p>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">{user?.username || 'Administrator'}</p>
+                  <p className="text-sm font-bold text-slate-700 leading-none mb-1 truncate max-w-[120px]">{displayName}</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">{displaySubtext}</p>
                </div>
                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center font-bold text-white shadow-md border border-slate-700 hover:scale-105 transition-transform cursor-pointer">
-                 DE
+                 {userInitials}
                </div>
             </div>
           </div>
