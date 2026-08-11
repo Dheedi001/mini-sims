@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { loginUser } from './authSlice';
-import { Lock, User, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Lock, User, ArrowRight, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // Eye Toggle State
   const [error, setError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -19,10 +20,8 @@ export default function Login() {
     setError(false);
 
     try {
-      // Passes the EXACT username/email typed by the user
       const resultAction = await dispatch(loginUser({ email: username, password })).unwrap();
       
-      // Dynamic RBAC Routing based on Supabase profile role
       if (resultAction.role === 'admin') {
         navigate('/admin/dashboard');
       } else if (resultAction.role === 'lecturer') {
@@ -37,25 +36,25 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B1121] flex items-center justify-center font-sans relative overflow-hidden selection:bg-blue-500/30">
+    <div className="min-h-screen bg-[#0B1121] flex items-center justify-center font-sans relative overflow-hidden selection:bg-blue-500/30 px-4">
       
       {/* AMBIENT BACKGROUND GLOWS */}
       <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-blue-900/20 blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-indigo-900/10 blur-[100px] pointer-events-none"></div>
 
-      {/* GLASSMORPHIC LOGIN PANEL */}
-      <div className="w-full max-w-md p-10 bg-white/5 backdrop-blur-2xl rounded-[32px] border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)] relative z-10 animate-slide-up">
+      {/* GLASSMORPHIC LOGIN PANEL - Adjusted p-6 for mobile */}
+      <div className="w-full max-w-md p-6 sm:p-10 bg-white/5 backdrop-blur-2xl rounded-[32px] border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)] relative z-10 animate-slide-up">
         
-        <div className="flex justify-center mb-8">
+        <div className="flex justify-center mb-6 sm:mb-8">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-2xl shadow-[0_0_30px_rgba(59,130,246,0.3)] border border-blue-400/20 relative group hover:scale-105 transition-transform duration-300">
             S
             <div className="absolute inset-0 rounded-2xl bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
           </div>
         </div>
         
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-black text-white tracking-tight mb-2">Welcome Back</h1>
-          <p className="text-sm font-medium text-slate-400">Enter your credentials to access the portal.</p>
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight mb-2">Welcome Back</h1>
+          <p className="text-xs sm:text-sm font-medium text-slate-400">Enter your credentials to access the portal.</p>
           <div className="mt-4 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
             <ShieldCheck size={12} /> Secure Connection
           </div>
@@ -67,9 +66,9 @@ export default function Login() {
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-5">
+        <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Username</label>
+            <label className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Username / Email</label>
             <div className="relative group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <User size={18} className="text-slate-500 group-focus-within:text-blue-400 transition-colors" />
@@ -80,32 +79,40 @@ export default function Login() {
                 required
                 value={username}
                 onChange={(e) => { setUsername(e.target.value); setError(false); }}
-                className="w-full pl-11 pr-4 py-3.5 bg-[#0F172A]/50 border border-slate-700/50 text-white rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium placeholder:text-slate-600"
+                className="w-full pl-11 pr-4 py-3 sm:py-3.5 bg-[#0F172A]/50 border border-slate-700/50 text-white rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all text-sm sm:text-base font-medium placeholder:text-slate-600"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Password</label>
+            <label className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Password</label>
             <div className="relative group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Lock size={18} className="text-slate-500 group-focus-within:text-blue-400 transition-colors" />
               </div>
               <input 
-                type="password" 
+                type={showPassword ? "text" : "password"} 
                 placeholder="••••••••" 
                 required
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(false); }}
-                className="w-full pl-11 pr-4 py-3.5 bg-[#0F172A]/50 border border-slate-700/50 text-white rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium placeholder:text-slate-600"
+                className="w-full pl-11 pr-12 py-3 sm:py-3.5 bg-[#0F172A]/50 border border-slate-700/50 text-white rounded-2xl outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all text-sm sm:text-base font-medium placeholder:text-slate-600"
               />
+              {/* EYE TOGGLE BUTTON */}
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
           <button 
             type="submit" 
             disabled={isLoading}
-            className="w-full mt-8 bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-wait"
+            className="w-full mt-6 sm:mt-8 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 sm:py-4 rounded-2xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-wait text-sm sm:text-base"
           >
             {isLoading ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -117,7 +124,7 @@ export default function Login() {
           </button>
         </form>
         
-        <div className="mt-8 text-center text-xs font-medium text-slate-500">
+        <div className="mt-6 sm:mt-8 text-center text-[10px] sm:text-xs font-medium text-slate-500">
           Authorized personnel only. <br/> Hint: <span className="text-slate-400">ADMIN- admin / admin123 <br/> LECTURER- lecturer / lecturer123 <br/> STUDENT- 202600142@sims.edu.ng / sims2026</span>
         </div>
       </div>

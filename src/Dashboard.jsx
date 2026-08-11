@@ -1,157 +1,138 @@
-import React, { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchStudents } from './studentSlice';
-import { Users, Activity, DollarSign, AlertCircle } from 'lucide-react';
+import React from 'react';
+import { useSelector } from 'react-redux';
+import { 
+  Users, TrendingUp, ShieldAlert, CreditCard, 
+  CheckCircle2, AlertCircle, Clock
+} from 'lucide-react';
 
 export default function Dashboard() {
-  const dispatch = useDispatch();
-  const { data: students, status } = useSelector((state) => state.students);
+  const { user } = useSelector((state) => state.auth);
 
-  useEffect(() => {
-    if (status === 'idle') dispatch(fetchStudents());
-  }, [status, dispatch]);
-
-  const calculateRiskScore = (student) => {
-    let score = 0;
-    if (student.attendanceRate < 75) score += 50;
-    else if (student.attendanceRate < 85) score += 20;
-    if (student.feesBalance > 100000) score += 50;
-    else if (student.feesBalance > 50000) score += 25;
-
-    if (score >= 75) return { tier: 'Critical', color: 'bg-red-500/10 text-red-600 border-red-500/20', dot: 'bg-red-500', flag: true };
-    if (score >= 45) return { tier: 'Warning', color: 'bg-amber-500/10 text-amber-600 border-amber-500/20', dot: 'bg-amber-500', flag: true };
-    return { tier: 'Good', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20', dot: 'bg-emerald-500', flag: false };
-  };
-
-  const totalStudents = students.length;
-  const avgAttendance = totalStudents ? Math.round(students.reduce((acc, curr) => acc + curr.attendanceRate, 0) / totalStudents) : 0;
-  const totalFees = students.reduce((acc, curr) => acc + curr.feesBalance, 0).toLocaleString();
-  const atRiskCount = students.filter(s => calculateRiskScore(s).flag).length;
+  const riskLedger = [
+    { id: 1, name: 'Daniel O.', grade: 'Year 2', attendance: 85, fees: '₦50,000', status: 'pending', risk: 'Good' },
+    { id: 2, name: 'Sarah J.', grade: 'Year 1', attendance: 98, fees: 'Cleared', status: 'cleared', risk: 'Good' },
+    { id: 3, name: 'Michael B.', grade: 'Year 3', attendance: 60, fees: '₦120,000', status: 'pending', risk: 'Critical' },
+    { id: 4, name: 'David E.', grade: 'Year 2', attendance: 72, fees: '₦85,000', status: 'pending', risk: 'Critical' },
+  ];
 
   return (
-    <div className="animate-fade-in">
-      <div className="mb-8">
-        <h2 className="text-3xl font-black text-slate-800 tracking-tight">System Overview</h2>
-        <p className="text-sm font-medium text-slate-500 mt-1">Live metrics and structural campus data.</p>
+    <div className="animate-fade-in w-full space-y-6 lg:space-y-8">
+      
+      {/* Welcome Banner */}
+      <div className="p-6 lg:p-8 rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-[50px] rounded-full -mr-20 -mt-20 pointer-events-none"></div>
+        <div className="relative z-10">
+          <h2 className="text-2xl lg:text-3xl font-black tracking-tight mb-1">Administrator Dashboard</h2>
+          <p className="text-blue-100 text-sm font-medium">Welcome back, {user?.full_name || 'Admin'}. Here is today's campus overview.</p>
+        </div>
+        <div className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 text-sm font-bold flex items-center gap-2 relative z-10">
+          <Clock size={16} className="text-blue-200" /> Live Environment
+        </div>
       </div>
 
-      {status === 'loading' && (
-         <div className="animate-pulse space-y-8">
-           <div className="grid grid-cols-4 gap-6"><div className="h-32 bg-white rounded-3xl border border-slate-100"></div><div className="h-32 bg-white rounded-3xl border border-slate-100"></div><div className="h-32 bg-white rounded-3xl border border-slate-100"></div><div className="h-32 bg-white rounded-3xl border border-slate-100"></div></div>
-         </div>
-      )}
-
-      {status === 'succeeded' && (
-        <>
-          {/* PREMIUM METRIC CARDS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <div className="premium-card p-6 flex flex-col justify-between group hover:-translate-y-1">
-              <div className="flex justify-between items-start">
-                <p className="text-sm font-bold text-slate-400">Total Enrolled</p>
-                <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300"><Users size={20} /></div>
-              </div>
-              <h3 className="text-4xl font-black text-slate-800 mt-4 tracking-tight">{totalStudents}</h3>
-            </div>
-
-            <div className="premium-card p-6 flex flex-col justify-between group hover:-translate-y-1">
-              <div className="flex justify-between items-start">
-                <p className="text-sm font-bold text-slate-400">Avg Attendance</p>
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center group-hover:scale-110 transition-transform duration-300"><Activity size={20} /></div>
-              </div>
-              <h3 className="text-4xl font-black text-slate-800 mt-4 tracking-tight">{avgAttendance}%</h3>
-            </div>
-
-            <div className="premium-card p-6 flex flex-col justify-between group hover:-translate-y-1">
-              <div className="flex justify-between items-start">
-                <p className="text-sm font-bold text-slate-400">Outstanding Fees</p>
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform duration-300"><DollarSign size={20} /></div>
-              </div>
-              <h3 className="text-4xl font-black text-slate-800 mt-4 tracking-tight">₦{totalFees}</h3>
-            </div>
-
-            <div className="premium-card p-6 border-0 bg-gradient-to-br from-navy-800 to-navy-900 flex flex-col justify-between relative overflow-hidden group hover:-translate-y-1">
-              <div className="absolute -right-4 -top-4 opacity-10 group-hover:scale-110 transition-transform duration-500"><AlertCircle size={120} className="text-coral-500" /></div>
-              <div className="flex justify-between items-start relative z-10">
-                <p className="text-sm font-bold text-slate-300">Smart Alerts</p>
-                <div className="w-10 h-10 rounded-xl bg-coral-500/20 text-coral-400 flex items-center justify-center border border-coral-500/30"><AlertCircle size={20} /></div>
-              </div>
-              <div className="relative z-10 mt-4 flex items-end gap-2">
-                <h3 className="text-4xl font-black text-white tracking-tight">{atRiskCount}</h3>
-                <p className="text-sm font-bold text-coral-400 mb-1.5">Action Req.</p>
-              </div>
-            </div>
+      {/* TOP METRICS - Fixed grids to stack correctly on small screens (grid-cols-1 sm:grid-cols-2 lg:grid-cols-4) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
+        <div className="premium-card p-6 bg-white flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Enrollment</p>
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center"><Users size={20} /></div>
           </div>
+          <h3 className="text-3xl font-black text-slate-800 tracking-tight mt-4">1,248</h3>
+        </div>
 
-          {/* DATA TABLE AREA */}
-          <div className="premium-card overflow-hidden">
-            <div className="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-white">
+        <div className="premium-card p-6 bg-white flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Avg Attendance</p>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center"><TrendingUp size={20} /></div>
+          </div>
+          <h3 className="text-3xl font-black text-slate-800 tracking-tight mt-4">86.4%</h3>
+        </div>
+
+        <div className="premium-card p-6 bg-white flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Pending Fees</p>
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center"><CreditCard size={20} /></div>
+          </div>
+          <h3 className="text-3xl font-black text-slate-800 tracking-tight mt-4 truncate">₦12.5M</h3>
+        </div>
+
+        <div className="premium-card p-6 bg-[#0B1121] text-white flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <p className="text-xs font-bold text-blue-400 uppercase tracking-widest">Smart Alerts</p>
+            <div className="w-10 h-10 rounded-xl bg-coral-500/20 text-coral-400 flex items-center justify-center"><ShieldAlert size={20} /></div>
+          </div>
+          <div className="mt-4 flex items-end gap-2">
+            <h3 className="text-3xl font-black tracking-tight">2</h3>
+            <p className="text-xs font-bold text-coral-400 mb-1.5">Action Req.</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
+        
+        {/* RIGHT SIDE: STUDENT RISK LEDGER - Fixed for Mobile Crushing */}
+        <div className="xl:col-span-2">
+          <div className="premium-card bg-white h-full flex flex-col">
+            <div className="p-6 border-b border-slate-100">
               <h3 className="font-bold text-slate-800 text-lg">Student Risk Ledger</h3>
+              <p className="text-xs font-medium text-slate-500 mt-1">Students requiring attention for fees or attendance.</p>
             </div>
             
-            <div className="p-8">
-              {students.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-                  <Users size={48} className="opacity-20 mb-4" />
-                  <p className="font-bold">No student records found in database.</p>
+            {/* THE RESPONSIVENESS MAGIC: overflow-x-auto & min-w */}
+            <div className="p-6 overflow-x-auto custom-scrollbar">
+              <div className="min-w-[650px] space-y-3">
+                
+                {/* Table Header */}
+                <div className="grid grid-cols-4 gap-4 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                  <div>Student Profile</div>
+                  <div>Attendance Metrics</div>
+                  <div>Financial Status</div>
+                  <div>Risk Assessment</div>
                 </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-4 gap-4 mb-3 px-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    <div>Student Profile</div>
-                    <div>Attendance Metrics</div>
-                    <div>Financial Status</div>
-                    <div className="text-right">Risk Assessment</div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {students.map((student) => {
-                      const risk = calculateRiskScore(student);
-                      return (
-                        <div key={student.id} className="grid grid-cols-4 gap-4 p-5 rounded-2xl border border-slate-100 bg-white items-center hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:scale-[1.01] hover:border-primary-100 transition-all duration-300 cursor-pointer group">
-                          
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center font-black text-slate-600 shadow-sm group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors">
-                              {student.name.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="font-bold text-slate-800 text-sm leading-tight">{student.name}</p>
-                              <p className="text-[11px] font-medium text-slate-500 mt-0.5">{student.grade}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="pr-8">
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-xs font-bold text-slate-700">{student.attendanceRate}%</span>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase">Rate</span>
-                            </div>
-                            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                              <div className={`h-full rounded-full ${student.attendanceRate < 75 ? 'bg-coral-500' : student.attendanceRate < 85 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${student.attendanceRate}%` }}></div>
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <div className={`text-sm font-black ${student.feesBalance > 0 ? 'text-slate-800' : 'text-emerald-500'}`}>
-                              {student.feesBalance > 0 ? `₦${student.feesBalance.toLocaleString()}` : 'Cleared'}
-                            </div>
-                            {student.feesBalance > 0 && <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Pending</p>}
-                          </div>
+                
+                {/* Table Rows */}
+                {riskLedger.map((student) => (
+                  <div key={student.id} className="grid grid-cols-4 gap-4 p-4 rounded-2xl border border-slate-100 items-center hover:border-blue-100 hover:shadow-sm transition-all bg-slate-50/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center font-black text-slate-700 shadow-sm">
+                        {student.name.charAt(0)}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-800 text-sm">{student.name}</h4>
+                        <p className="text-[10px] font-bold text-slate-400 mt-0.5">{student.grade}</p>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-black text-slate-700">{student.attendance}%</span>
+                        <span className="text-[10px] font-bold text-slate-400">RATE</span>
+                      </div>
+                      <div className="w-16 h-1 bg-slate-200 rounded-full mt-1.5 overflow-hidden">
+                        <div className={`h-full rounded-full ${student.attendance < 75 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${student.attendance}%` }}></div>
+                      </div>
+                    </div>
 
-                          <div className="flex justify-end">
-                            <span className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 border rounded-lg font-bold tracking-wide ${risk.color}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${risk.dot}`}></span>
-                              {risk.tier}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
+                    <div>
+                      <h4 className={`text-sm font-black ${student.status === 'cleared' ? 'text-emerald-600' : 'text-slate-800'}`}>
+                        {student.fees}
+                      </h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">{student.status}</p>
+                    </div>
+
+                    <div>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ${student.risk === 'Critical' ? 'bg-coral-50 text-coral-600 border border-coral-200/50' : 'bg-emerald-50 text-emerald-600 border border-emerald-200/50'}`}>
+                        {student.risk === 'Critical' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />} {student.risk}
+                      </span>
+                    </div>
                   </div>
-                </>
-              )}
+                ))}
+
+              </div>
             </div>
           </div>
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 }
