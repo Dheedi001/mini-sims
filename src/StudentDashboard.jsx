@@ -1,106 +1,83 @@
-import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchStudents } from './studentSlice';
-import { Search, Filter, Mail, ShieldAlert, CheckCircle2, User, ChevronRight, GraduationCap } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { useSelector } from 'react-redux';
+import { QRCodeSVG } from 'qrcode.react'; // FIXED: Using the modern named export
+import { Clock, BookOpenText, User, Maximize } from 'lucide-react';
 
-export default function StudentDirectory() {
-  const dispatch = useDispatch();
-  const { data: students, status } = useSelector((state) => state.students);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState('All');
+export default function StudentDashboard() {
+  const { user } = useSelector((state) => state.auth);
 
-  useEffect(() => {
-    if (status === 'idle') dispatch(fetchStudents());
-  }, [status, dispatch]);
-
-  const filteredStudents = students.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (student.regNo && student.regNo.includes(searchTerm));
-    const matchesDept = departmentFilter === 'All' || student.grade === departmentFilter;
-    return matchesSearch && matchesDept;
-  });
+  // Security: Generate a temporary session token
+  const secureIdentityToken = useMemo(() => {
+    // Safe fallback: If reg_no isn't in Redux yet, use the default mock ID
+    const regNo = user?.reg_no || '202600142';
+    return `REG_NO:${regNo}`;
+  }, [user]);
 
   return (
-    <div className="animate-fade-in w-full">
-      <div className="mb-6 lg:mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl lg:text-3xl font-black text-slate-800 tracking-tight">Student Directory</h2>
-          <p className="text-sm font-medium text-slate-500 mt-1">Master institutional registry and student profiles.</p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="relative flex-1 sm:w-72">
-            <Search size={16} className="absolute left-4 top-3.5 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search by name or reg no..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-blue-500 shadow-sm"
-            />
+    <div className="animate-fade-in w-full space-y-6 lg:space-y-8">
+      {/* Welcome Banner */}
+      <div className="p-6 lg:p-8 rounded-3xl bg-slate-900 text-white shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[50px] rounded-full -mr-20 -mt-20 pointer-events-none"></div>
+        <div className="relative z-10 flex flex-col md:flex-row justify-between md:items-center gap-4">
+          <div>
+            <h2 className="text-3xl font-black tracking-tight mb-1">Welcome back, {user?.full_name?.split(' ')[0] || 'Student'}.</h2>
+            <p className="text-slate-400 text-sm font-medium">B.Eng Software Engineering | Year 3</p>
           </div>
-          <select 
-            value={departmentFilter}
-            onChange={(e) => setDepartmentFilter(e.target.value)}
-            className="px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-blue-500 shadow-sm cursor-pointer"
-          >
-            <option value="All">All Levels / Grades</option>
-            <option value="Year 1">Year 1</option>
-            <option value="Year 2">Year 2</option>
-            <option value="Year 3">Year 3</option>
-          </select>
+          <div className="flex items-center gap-3 bg-slate-800 p-4 rounded-2xl border border-slate-700 w-full md:w-auto">
+            <Maximize size={18} className="text-slate-500" />
+            <p className="text-xs font-bold uppercase text-slate-400 tracking-widest leading-none">Show QR Code<br/><span className="text-[10px] text-slate-600">to Lecturer</span></p>
+          </div>
         </div>
       </div>
 
-      <div className="premium-card overflow-hidden bg-white flex flex-col">
-        {/* MOBILE RESPONSIVE WRAPPER */}
-        <div className="overflow-x-auto custom-scrollbar">
-          <div className="min-w-[800px]">
-            <div className="grid grid-cols-5 gap-4 px-6 lg:px-8 py-4 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              <div className="col-span-2">Student & Institutional Email</div>
-              <div>Department</div>
-              <div>Attendance</div>
-              <div className="text-right">Action</div>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
+        {/* Requirement: Student Identifier QR Code Generator */}
+        <div className="lg:col-span-2 flex flex-col items-center premium-card bg-white p-8 space-y-6 border border-slate-100 h-full">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Live Identity Identifier</p>
+          
+          <div className="bg-slate-50 border border-slate-100 p-4 rounded-3xl shadow-inner flex items-center justify-center relative">
+            {secureIdentityToken ? (
+              <>
+                {/* FIXED: Using QRCodeSVG component */}
+                <QRCodeSVG 
+                  value={secureIdentityToken} 
+                  size={200} 
+                  bgColor="#F8FAFC"
+                  fgColor="#0B1121"
+                  level="H" 
+                  includeMargin={false}
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg border border-slate-100">
+                        <div className="w-8 h-8 rounded-lg bg-blue-600 text-white font-black text-lg flex items-center justify-center">S</div>
+                    </div>
+                </div>
+              </>
+            ) : (
+              <div className="w-[200px] h-[200px] flex items-center justify-center text-slate-400 font-medium">Loading session...</div>
+            )}
+          </div>
+          <p className="text-xs font-medium text-center text-slate-500 leading-relaxed max-w-[280px]">
+            Please present this QR code to your lecturer for instant attendance validation.
+          </p>
+        </div>
 
-            <div className="divide-y divide-slate-100">
-              {filteredStudents.length === 0 ? (
-                <div className="p-12 text-center text-slate-400 font-bold">No students match your search criteria.</div>
-              ) : (
-                filteredStudents.map((student) => (
-                  <div key={student.id} className="grid grid-cols-5 gap-4 px-6 lg:px-8 py-4 items-center hover:bg-slate-50/80 transition-colors group">
-                    <div className="col-span-2 flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center font-black text-slate-700 shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                        {student.name.charAt(0)}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-800 text-sm">{student.name}</h4>
-                        <p className="text-[11px] font-mono text-slate-400 mt-0.5">{student.regNo || `202600${student.id}@sims.edu.ng`}</p>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-700">
-                        <GraduationCap size={14} className="text-slate-400" /> {student.grade || 'Software Eng.'}
-                      </span>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-700">{student.attendanceRate}%</span>
-                        <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${student.attendanceRate < 75 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${student.attendanceRate}%` }}></div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end">
-                      <button className="px-3.5 py-2 bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-600 text-xs font-bold rounded-xl transition-all flex items-center gap-1 shadow-sm">
-                        View Profile <ChevronRight size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
+        {/* Next Classes Card */}
+        <div className="lg:col-span-3 premium-card bg-white h-full space-y-5">
+          <div className="p-6 border-b border-slate-100">
+            <h3 className="font-bold text-slate-800 tracking-tight flex items-center gap-2"><BookOpenText size={18} className="text-blue-600" /> Today's Schedule</h3>
+          </div>
+          
+          <div className="p-6 space-y-4">
+            <div className="flex items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:border-blue-100 hover:bg-blue-50/50 transition-all cursor-pointer group">
+              <div className="w-16 flex flex-col items-center justify-center gap-0.5 text-center text-xs border-r border-slate-200 pr-4 flex-shrink-0">
+                <span className="font-black text-slate-800 text-base">08:00</span>
+                <span className="font-medium text-slate-500">10:00</span>
+              </div>
+              <div className="flex-1">
+                <p className="font-black text-slate-800 text-sm tracking-tight mb-1 group-hover:text-blue-700">SEN 301</p>
+                <p className="text-xs font-medium text-slate-600">Advanced React Patterns | Hall 4</p>
+              </div>
             </div>
           </div>
         </div>

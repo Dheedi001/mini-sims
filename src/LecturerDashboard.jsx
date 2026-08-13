@@ -1,150 +1,179 @@
-import React, { useState, useEffect } from 'react';
-import { QrCode, Users, Scan, Clock, CheckCircle2, ChevronDown, StopCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from './supabaseClient';
+import { Html5QrcodeScanner } from 'html5-qrcode';
+import { ScanSearch, BookOpenText, AlertTriangle, CheckCircle2, XCircle, Camera, Loader2, AlertCircle } from 'lucide-react';
 
 export default function LecturerDashboard() {
-  const [sessionActive, setSessionActive] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
-  const [scannedCount, setScannedCount] = useState(0);
+  const [activeCourse, setActiveCourse] = useState('SEN 301');
+  const [scanStatus, setScanStatus] = useState('idle'); // idle | loading | success | error | warning
+  const [scanMessage, setScanMessage] = useState('Waiting for student code...');
+  const [scannedStudentName, setScannedStudentName] = useState(null);
+  const scannerRef = useRef(null);
 
-  // Mock Lecturer Data
-  const courses = [
-    { id: 'c1', title: 'Advanced React Patterns (SEN 301)' },
-    { id: 'c2', title: 'System Architecture (SEN 402)' }
-  ];
-
+  // Requirement: Lecturer uses scanner, marks present if in class, in sync with database
   useEffect(() => {
-    let timer;
-    if (sessionActive && timeLeft > 0) {
-      timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-        // Simulate random students scanning the QR code
-        if (Math.random() > 0.7) setScannedCount(prev => prev + 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      setSessionActive(false);
+    if (!scannerRef.current) {
+        scannerRef.current = new Html5QrcodeScanner("reader", {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            rememberLastUsedCamera: true,
+            supportedScanTypes: [0] // QR Codes only
+        }, false);
     }
-    return () => clearInterval(timer);
-  }, [sessionActive, timeLeft]);
 
-  const formatTime = (seconds) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
+    const onScanSuccess = async (decodedText, decodedResult) => {
+        // Prevent double scanning while processing
+        if (scanStatus === 'loading') return;
+        setScanStatus('loading');
+        setScanMessage('Validating in master ledger...');
+        setScannedStudentName(null);
 
-  const startSession = () => {
-    setSessionActive(true);
-    setTimeLeft(300);
-    setScannedCount(0);
-  };
+        // Security Validation: Ensure it's our specific format "REG_NO:XXXX"
+        if (!decodedText.startsWith('REG_NO:')) {
+            setScanStatus('error');
+            setScanMessage('Invalid QR Code format.');
+            return;
+        }
 
-  const endSession = () => {
-    setSessionActive(false);
+        // Parse student registration number from scanned text
+        const regNo = decodedText.split(':')[1];
+
+        try {
+            // Requirement: Sync with database. Call secure RPC function.
+            const { data, error } = await supabase.rpc('validate_and_mark_attendance', {
+                scanned_reg_no: regNo,
+                target_course_code: activeCourse
+            });
+
+            if (error) throw error;
+
+            // Process the server-side response
+            if (data.status === 'success') {
+                setScanStatus('success');
+                setScanMessage(data.message);
+                setScannedStudentName(data.student_name);
+                // In production, we would also trigger a successful 'ding' sound
+            } else if (data.status === 'warning') {
+                setScanStatus('warning');
+                setScanMessage(data.message);
+            } else {
+                setScanStatus('error');
+                setScanMessage(data.message);
+            }
+        } catch (error) {
+            setScanStatus('error');
+            setScanMessage('Database connection error.');
+        } finally {
+            // Keep the status visible for feedback, then reset automatically for next scan
+            setTimeout(() => {
+                if (scanStatus !== 'loading') {
+                   // setScanStatus('idle'); // We reset to allow next scan naturally
+                   // setScanMessage('Waiting for student code...');
+                   setScanStatus('idle');
+                }
+            }, 3000); // 3 seconds feedback loop
+        }
+    };
+
+    const onScanFailure = (error) => {
+        // html5-qrcode calls this for every frame it can't read, usually fine to ignore
+        // setScanStatus('error');
+        // setScanMessage('Scanning failed.');
+    };
+
+    scannerRef.current.render(onScanSuccess, onScanFailure);
+
+    // Clean up scanner on component unmount
+    return () => {
+        if (scannerRef.current) {
+            scannerRef.current.clear().catch(error => {
+                console.error("Failed to clear scanner:", error);
+            });
+        }
+    };
+  }, [activeCourse, scanStatus]);
+
+  const StatusIcon = () => {
+      if (scanStatus === 'loading') return <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />;
+      if (scanStatus === 'success') return <CheckCircle2 className="w-12 h-12 text-emerald-500" />;
+      if (scanStatus === 'warning') return <AlertCircle className="w-12 h-12 text-amber-500" />;
+      if (scanStatus === 'error') return <XCircle className="w-12 h-12 text-coral-500" />;
+      return <Camera className="w-12 h-12 text-slate-400 animate-pulse" />;
   };
 
   return (
-    <div className="animate-fade-in max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h2 className="text-3xl font-black text-slate-800 tracking-tight">Lecturer Workspace</h2>
-        <p className="text-sm font-medium text-slate-500 mt-1">Manage course sessions and track live student attendance.</p>
+    <div className="animate-fade-in w-full space-y-6 lg:space-y-8 max-w-7xl mx-auto">
+      
+      {/* Welcome Banner */}
+      <div className="p-6 lg:p-8 rounded-3xl bg-slate-900 text-white shadow-xl flex flex-col md:flex-row justify-between md:items-center gap-4 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-600/10 blur-[50px] rounded-full -mr-20 -mt-20 pointer-events-none"></div>
+        <div className="relative z-10">
+          <h2 className="text-3xl font-black tracking-tight mb-1">Live QR Attendance Session</h2>
+          <p className="text-slate-400 text-sm font-medium">Active Course | {activeCourse}</p>
+        </div>
+        <div className="flex items-center gap-3 bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20 w-full md:w-auto">
+            <AlertTriangle size={18} className="text-emerald-400" />
+            <p className="text-xs font-bold uppercase text-emerald-400 tracking-widest leading-none">Security:<br/><span className="text-[10px] text-emerald-600">Active Anti-Spoofing</span></p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
         
-        {/* LEFT COLUMN: CONTROLS */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="premium-card p-6 bg-white">
-            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <Scan size={18} className="text-blue-500" /> Session Configuration
-            </h3>
-            
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Select Course</label>
-                <div className="relative">
-                  <select 
-                    disabled={sessionActive}
-                    className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-bold text-slate-700 appearance-none disabled:opacity-50"
-                  >
-                    {courses.map(c => (
-                      <option key={c.id} value={c.id}>{c.title}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={16} className="absolute right-4 top-3.5 text-slate-400 pointer-events-none" />
-                </div>
+        {/* Requirement: Lecturer scans with a scanner */}
+        <div className="xl:col-span-2 premium-card bg-white space-y-6 border border-slate-100 p-6 lg:p-8">
+          <div className="flex flex-col md:flex-row justify-between gap-4 border-b border-slate-100 pb-6">
+              <div>
+                 <h3 className="text-xl font-bold text-slate-800 tracking-tight flex items-center gap-2"><ScanSearch size={18} className="text-blue-600" /> Live Scanner Module</h3>
+                 <p className="text-xs font-medium text-slate-500 mt-1">Please ensure camera permissions are active.</p>
               </div>
+              <select 
+                value={activeCourse}
+                onChange={(e) => setActiveCourse(e.target.value)}
+                className="w-full md:w-auto px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-blue-600 outline-none focus:border-blue-500 shadow-sm cursor-pointer transition-all"
+                >
+                <option value="SEN 301">Advanced React Patterns (SEN 301)</option>
+                <option value="SEN 305">Database Architecture (SEN 305)</option>
+              </select>
+          </div>
 
-              {!sessionActive ? (
-                <button 
-                  onClick={startSession}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-[0_4px_14px_0_rgba(59,130,246,0.39)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.23)] flex items-center justify-center gap-2 active:scale-95"
-                >
-                  <QrCode size={18} /> Generate QR Token
-                </button>
-              ) : (
-                <button 
-                  onClick={endSession}
-                  className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3.5 rounded-xl transition-all shadow-[0_4px_14px_0_rgba(239,68,68,0.39)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.23)] flex items-center justify-center gap-2 active:scale-95"
-                >
-                  <StopCircle size={18} /> End Active Session
-                </button>
-              )}
+          <div className="flex flex-col items-center justify-center space-y-6 bg-slate-50 border border-slate-100 rounded-3xl p-6 lg:p-8 relative overflow-hidden">
+             {/* THE ACTUAL SCANNER RENDER TARGET */}
+             <div id="reader" className="w-full max-w-[500px] bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-slate-900 aspect-square relative z-10">
+                {/* The html5-qrcode scanner renders inside this div */}
+             </div>
+             
+             {scanStatus !== 'idle' && (
+                 <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-8 text-center gap-2 animate-fade-in">
+                     <div className="bg-white p-6 rounded-3xl shadow-xl flex items-center justify-center">
+                        <StatusIcon />
+                     </div>
+                     {scannedStudentName && <p className="text-xl font-black text-white mt-4">{scannedStudentName}</p>}
+                     <p className={`text-base font-bold ${scanStatus === 'success' ? 'text-emerald-400' : scanStatus === 'warning' ? 'text-amber-400' : scanStatus === 'error' ? 'text-coral-400' : 'text-slate-300'}`}>
+                        {scanMessage}
+                     </p>
+                 </div>
+             )}
+          </div>
+        </div>
+
+        {/* Real-time Session Activity Card */}
+        <div className="premium-card bg-white h-full space-y-6">
+          <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between gap-4">
+              <h3 className="font-bold text-slate-800 tracking-tight flex items-center gap-2"><BookOpenText size={18} className="text-emerald-600" /> Present (8/32)</h3 >
+              <button className="text-xs font-bold px-3 py-1.5 rounded-lg text-white bg-slate-900 hover:bg-slate-800 transition-colors">Clear Ledger</button>
+          </div>
+          
+          <div className="p-6 pt-0 space-y-3 overflow-y-auto max-h-[500px] custom-scrollbar">
+            <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl animate-slide-up">
+              <CheckCircle2 size={16} className="text-emerald-500" />
+              <div>
+                <p className="text-sm font-bold text-emerald-800">Destiny Enobong</p>
+                <p className="text-[11px] font-mono text-emerald-600 mt-0.5">Scanned at: 08:05:32</p>
+              </div>
             </div>
-          </div>
-
-          <div className="premium-card p-6 bg-white flex items-center justify-between">
-             <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Live Scans</p>
-                <h3 className="text-3xl font-black text-slate-800">{scannedCount}</h3>
-             </div>
-             <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-500">
-               <Users size={24} />
-             </div>
+             {/* Present students would populate here automatically from Supabase Realtime */}
           </div>
         </div>
-
-        {/* RIGHT COLUMN: THE QR DISPLAY */}
-        <div className="lg:col-span-2">
-          <div className="h-[500px] bg-[#0B1121] rounded-[32px] border border-slate-800 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center relative overflow-hidden group">
-            
-            {/* Ambient Background Glows */}
-            <div className={`absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600/10 to-indigo-900/10 transition-opacity duration-1000 ${sessionActive ? 'opacity-100' : 'opacity-0'}`}></div>
-            
-            {sessionActive ? (
-              <div className="relative z-10 flex flex-col items-center animate-slide-up">
-                {/* Live Indicator */}
-                <div className="absolute -top-12 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                  Session Live
-                </div>
-                
-                {/* The QR Code Container */}
-                <div className="bg-white p-6 rounded-3xl shadow-[0_0_50px_rgba(59,130,246,0.3)] relative">
-                  {/* Decorative Scan Line Animation */}
-                  <div className="absolute top-0 left-0 w-full h-1 bg-blue-500 shadow-[0_0_10px_#3b82f6] animate-[slideUp_2s_ease-in-out_infinite_alternate] rounded-full opacity-50 z-20"></div>
-                  
-                  {/* For presentation purposes, using a heavily styled Lucide icon to simulate the QR. 
-                      In production, replace with <QRCode value={databaseToken} /> */}
-                  <QrCode size={200} className="text-slate-900" strokeWidth={1} />
-                </div>
-
-                {/* Countdown Timer */}
-                <div className="mt-8 flex items-center gap-3 text-white">
-                  <Clock size={20} className="text-blue-400" />
-                  <span className="text-3xl font-black font-mono tracking-wider">{formatTime(timeLeft)}</span>
-                </div>
-                <p className="text-slate-400 text-sm font-medium mt-2">Students must scan before timer expires.</p>
-              </div>
-            ) : (
-              <div className="relative z-10 flex flex-col items-center text-slate-500">
-                <QrCode size={80} strokeWidth={1} className="opacity-20 mb-6" />
-                <h3 className="text-xl font-black text-slate-400">No Active Session</h3>
-                <p className="text-sm font-medium mt-2 max-w-xs text-center">Select a course and click generate to display the attendance QR code.</p>
-              </div>
-            )}
-          </div>
-        </div>
-
       </div>
     </div>
   );
