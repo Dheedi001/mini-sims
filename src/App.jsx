@@ -17,12 +17,14 @@ import LecturerRegistry from './LecturerRegistry';
 import Settings from './Settings';
 import LecturerGrades from './LecturerGrades';
 import StudentTranscript from './StudentTranscript';
+import LandingPage from './LandingPage';
 
 // RBAC SECURITY INTERCEPTOR
 const RoleProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   
-  if (!isAuthenticated || !user) return <Navigate to="/" replace />;
+  // If not logged in, boot them back to the login screen
+  if (!isAuthenticated || !user) return <Navigate to="/login" replace />;
 
   // Check if user's role is allowed in this route
   if (!allowedRoles.includes(user.role)) {
@@ -43,7 +45,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Login />} />
+        {/* PUBLIC ROUTES */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/update-password" element={<ForcePasswordReset />} />
         
         {/* ==========================================
@@ -58,10 +62,6 @@ export default function App() {
           <Route path="/admin/students" element={<StudentDirectory />} />
           <Route path="/admin/analytics" element={<Analytics />} />
           <Route path="/admin/settings" element={<Settings />} />
-          {/* In the LECTURER WORKSPACE */}
-          <Route path="/lecturer/grades" element={<LecturerGrades />} />
-          {/* In the STUDENT WORKSPACE */}    
-          <Route path="/student/transcript" element={<StudentTranscript />} />
         </Route>
 
         {/* ==========================================
@@ -71,6 +71,7 @@ export default function App() {
           <Route path="/lecturer/dashboard" element={<LecturerDashboard />} />
           <Route path="/lecturer/registry" element={<LecturerRegistry />} />
           <Route path="/lecturer/timetable" element={<Timetable />} />
+          <Route path="/lecturer/grades" element={<LecturerGrades />} />
           <Route path="/lecturer/settings" element={<Settings />} />
         </Route>
 
@@ -81,6 +82,7 @@ export default function App() {
           <Route path="/student/dashboard" element={<StudentDashboard />} />
           <Route path="/student/fees" element={<StudentFees />} />
           <Route path="/student/timetable" element={<Timetable />} />
+          <Route path="/student/transcript" element={<StudentTranscript />} />
           <Route path="/student/settings" element={<Settings />} />
         </Route>
         
